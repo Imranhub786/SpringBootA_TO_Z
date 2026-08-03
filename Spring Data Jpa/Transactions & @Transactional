@@ -1,0 +1,12 @@
+1. What is a Transaction?
+2. Why do we need Transactions?
+3. COMMIT and ROLLBACK
+4. What is @Transactional?
+5. Where should @Transactional be placed?
+6. How does it work internally?
+7. ACID properties
+8. Rollback rules
+9. readOnly transactions
+10. Common mistakes
+11. Interview questions
+12. Real project implementation
