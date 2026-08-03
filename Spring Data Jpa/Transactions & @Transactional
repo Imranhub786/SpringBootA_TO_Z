@@ -10,3 +10,98 @@
 10. Common mistakes
 11. Interview questions
 12. Real project implementation
+->A transaction is a sequence of database operations treated as a single logical unit of work. 
+It helps maintain data consistency by ensuring that the operations are committed when successful or rolled back when a failure requiring rollback occurs.
+
+The three words you should immediately remember are:
+TRANSACTION
+
+     ↓
+Unit of Work
+Commit
+Rollback
+
+Real-Life Banking Example
+Suppose:
+Imran Account = ₹10,000
+Rahul Account = ₹5,000
+You transfer:
+₹2,000
+Two database operations happen.
+
+Operation 1
+Subtract ₹2,000:
+Imran
+₹10,000
+   ↓
+₹8,000
+
+Operation 2
+Add ₹2,000:
+Rahul
+₹5,000
+   ↓
+₹7,000
+Everything works:
+Imran = ₹8,000
+Rahul = ₹7,000
+
+COMMIT ✅
+But imagine the server crashes between the operations:
+Subtract ₹2,000 from Imran ✅
+SERVER CRASH 💥
+Add ₹2,000 to Rahul ❌
+Now:
+Imran = ₹8,000
+Rahul = ₹5,000
+₹2,000 disappeared! ❌
+That's unacceptable.
+We want:
+Operation 1
+Operation 2
+Operation 3
+       ↓
+ALL SUCCESSFUL?
+   ↙         ↘
+ YES         FAILURE
+ ↓              ↓
+COMMIT       ROLLBACK
+
+4. COMMIT vs ROLLBACK
+These two words are extremely important.
+COMMIT
+COMMIT = Save the transaction's changes permanently.
+Example:
+Transfer ₹2,000
+Debit successful ✅
+Credit successful ✅
+
+        ↓
+      COMMIT
+
+        ↓
+Changes saved
+
+ROLLBACK
+ROLLBACK = Undo the transaction's changes.
+example:
+Debit successful ✅
+Credit failed ❌
+
+       ↓
+
+    ROLLBACK
+
+       ↓
+
+Undo transaction changes
+
+Lifetime trick
+COMMIT = Keep it.
+ROLLBACK = Undo it.
+
+5. Why Do We Need Transactions?
+The main goal is:
+Data Consistency
+
+Imagine an e-commerce application.
