@@ -105,3 +105,396 @@ The main goal is:
 Data Consistency
 
 Imagine an e-commerce application.
+
+10. Universal Layer Trick
+CONTROLLER
+"What does the client want?"
+
+       ↓
+
+SERVICE
+"What business operation should happen?"
+@Transactional ⭐
+
+       ↓
+
+REPOSITORY
+"How do I access the database?"
+
+       ↓
+
+DATABASE
+
+11. WHEN Should We Use @Transactional?
+A strong rule is:
+Use a transaction when a business operation contains database work that must remain consistent as one logical unit.
+Typical examples include:
+
+Banking
+Debit Account
++
+Credit Account
+
+13. What Happens Internally?
+
+Suppose Controller calls:
+
+accountService.transferMoney(...);
+
+Conceptually Spring does something like:
+
+Controller
+    ↓
+Spring Transaction Proxy
+    ↓
+BEGIN TRANSACTION
+    ↓
+transferMoney()
+    ↓
+Repository Operations
+    ↓
+Hibernate / JPA
+    ↓
+Database
+    ↓
+Method completed successfully?
+   ↙                   ↘
+YES                    rollback-triggering failure
+ ↓                          ↓
+COMMIT                   ROLLBACK
+
+Proxy
+Spring commonly wraps your transactional bean with a proxy.
+
+15. ACID Properties
+Transactions are closely associated with ACID.
+
+A → Atomicity
+C → Consistency
+I → Isolation
+D → Durability
+
+Let's understand them using our bank example.
+A — Atomicity
+
+Think:
+
+ALL OR NOTHING
+
+Transfer ₹2,000:
+
+Debit Sender
++
+Credit Receiver
+
+Either both happen:
+
+✅ + ✅
+
+or the transaction is rolled back:
+
+❌
+Interview definition
+
+Atomicity ensures that all operations within a transaction succeed as a unit or the transaction's changes are rolled back.
+
+Memory
+A = ALL or NOTHING
+16. C — Consistency
+
+Imagine the bank has a rule:
+
+Account balance must follow
+the application's/database's valid rules.
+
+The database should move:
+
+Valid State
+     ↓
+Transaction
+     ↓
+Valid State
+Interview definition
+
+Consistency means a transaction should preserve defined data integrity rules and move the database from one valid state to another.
+
+Memory
+C = Correct/Valid State
+17. I — Isolation
+
+This one is VERY important because it leads directly into locking.
+
+Imagine:
+
+Account Balance = ₹10,000
+
+Two operations happen at almost the same time:
+
+Transaction A
+withdraw ₹7,000
+
+Transaction B
+withdraw ₹6,000
+
+Both may try to read/update the same data concurrently.
+
+Isolation is about controlling how concurrent transactions interact with and observe each other's work.
+
+Interview definition
+
+Isolation controls the visibility and interaction of concurrent transactions so that they do not improperly interfere with each other.
+
+Memory
+I = Independent concurrent transactions
+
+This is exactly why our future topics matter:
+
+Transactions
+     ↓
+Concurrency
+     ↓
+Isolation
+     ↓
+Optimistic Locking
+Pessimistic Locking
+18. D — Durability
+
+Suppose transfer succeeds:
+
+COMMIT ✅
+
+Then the server crashes.
+
+When the system comes back, the committed transaction should still be persisted according to the database's durability guarantees.
+
+Interview definition
+
+Durability means that once a transaction has been committed, its changes survive subsequent failures according to the database's persistence guarantees.
+
+Memory
+D = Done means Durable
+19. ACID Lifetime Trick
+
+Remember this sentence:
+
+All Changes Is Durable
+
+A → All       → Atomicity
+C → Changes   → Consistency
+I → Is        → Isolation
+D → Durable   → Durability
+
+More importantly, understand:
+
+Atomicity
+→ All or nothing
+
+Consistency
+→ Valid state
+
+Isolation
+→ Concurrent transactions controlled
+
+Durability
+→ Committed changes persist
+Does @Transactional rollback for every exception?
+
+A strong answer:
+
+By default, Spring rolls back declarative transactions for unchecked RuntimeExceptions and Errors.
+Checked exceptions do not cause rollback by default unless rollback rules such as rollbackFor are configured.
+
+
+22. Project-Based Example
+Let's build a small bank transfer service.
+Entity
+@Entity
+public class Account {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    private String holderName;
+
+    private Double balance;
+
+    // getters/setters
+}
+Repository
+public interface AccountRepository
+        extends JpaRepository<Account, Long> {
+}
+Service
+@Service
+public class AccountService {
+
+    private final AccountRepository accountRepository;
+
+    public AccountService(
+            AccountRepository accountRepository) {
+
+        this.accountRepository = accountRepository;
+    }
+
+    @Transactional
+    public void transfer(
+            Long senderId,
+            Long receiverId,
+            double amount) {
+
+        Account sender =
+                accountRepository.findById(senderId)
+                        .orElseThrow(() ->
+                                new ResourceNotFoundException(
+                                        "Sender not found"
+                                ));
+
+        Account receiver =
+                accountRepository.findById(receiverId)
+                        .orElseThrow(() ->
+                                new ResourceNotFoundException(
+                                        "Receiver not found"
+                                ));
+
+        if (sender.getBalance() < amount) {
+            throw new IllegalArgumentException(
+                    "Insufficient balance"
+            );
+        }
+
+        sender.setBalance(
+                sender.getBalance() - amount
+        );
+
+        receiver.setBalance(
+                receiver.getBalance() + amount
+        );
+
+        accountRepository.save(sender);
+        accountRepository.save(receiver);
+    }
+}
+23. Controller
+@RestController
+@RequestMapping("/accounts")
+public class AccountController {
+
+    private final AccountService accountService;
+
+    public AccountController(
+            AccountService accountService) {
+
+        this.accountService = accountService;
+    }
+
+    @PostMapping("/transfer")
+    public ResponseEntity<String> transfer(
+            @RequestParam Long from,
+            @RequestParam Long to,
+            @RequestParam double amount) {
+
+        accountService.transfer(
+                from,
+                to,
+                amount
+        );
+
+        return ResponseEntity.ok(
+                "Transfer successful"
+        );
+    }
+}
+
+24. One More Important JPA Concept: Dirty Checking
+
+Inside an active transaction, Hibernate manages entities loaded into the persistence context.
+
+For example:
+
+@Transactional
+public void updateName(Long id) {
+
+    Employee employee =
+            repository.findById(id)
+                    .orElseThrow();
+
+    employee.setName("Rahul");
+}
+
+You may notice:
+
+Where is save()?
+
+For a managed entity, Hibernate can detect the changed field and synchronize the change when the persistence context is flushed, typically around transaction commit.
+
+This is called:
+
+Dirty Checking
+
+Conceptually:
+
+Load Employee
+      ↓
+Hibernate manages it
+      ↓
+Change employee.name
+      ↓
+Hibernate detects change
+      ↓
+Flush
+      ↓
+UPDATE
+      ↓
+COMMIT
+
+This is an important connection between JPA and transactions.
+
+1. What is a transaction?
+
+A transaction is a group of database operations treated as one logical unit of work, helping maintain consistency through commit or rollback.
+
+2. What does @Transactional do?
+
+It defines a transactional boundary and lets Spring manage the transaction lifecycle around a method or class.
+
+3. Where do you normally use it?
+
+Usually in the Service layer around business operations that need transactional consistency.
+
+4. What is ACID?
+
+Atomicity, Consistency, Isolation and Durability.
+
+5. What happens when a runtime exception occurs?
+
+By default, an unchecked RuntimeException escaping the transactional method causes the Spring transaction to roll back.
+
+6. Why is @Transactional useful in money transfer?
+
+Because debit and credit belong to the same business operation. If one part fails, we don't want the database left with only part of the transfer applied.
+
+🧠 Universal Formula for Any Project
+
+Whenever you're writing service logic, ask:
+
+Does this method represent
+ONE business operation?
+          ↓
+Does it perform database work
+that must stay consistent together?
+          ↓
+         YES
+          ↓
+Consider @Transactional
+          ↓
+Repository operations
+          ↓
+Success?
+ ↙                ↘
+YES              FAILURE
+ ↓                  ↓
+COMMIT           ROLLBACK
+One-line lifetime trick
+
+@Transactional = One business operation, one transaction boundary.
