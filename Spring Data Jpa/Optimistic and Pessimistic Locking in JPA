@@ -1,0 +1,245 @@
+✅ What is Concurrency?
+✅ Why do we need Locking?
+✅ What is Database Locking?
+✅ Optimistic Locking
+✅ Pessimistic Locking
+✅ @Version
+✅ OptimisticLockException
+✅ PessimisticLockException
+✅ Real-world Examples
+✅ Developer Thinking
+✅ Interview Questions
+✅ Lifetime Memory Tricks
+✅ Universal Decision Formula
+
+What is Concurrency?
+10-Year-Old Definition
+Concurrency means
+Many people trying to use the same thing at the same time.
+Interview Definition
+Concurrency is the situation where multiple transactions or users access the same data simultaneously.
+
+
+What is Database Locking?
+Imagine
+Classroom
+One notebook.
+Teacher says
+"Only one student can use this notebook at a time."
+Teacher locks access.
+After Rahul finishes,
+Teacher gives notebook to Priya.
+This is Locking.
+Database Locking is a mechanism that protects data from being modified incorrectly when multiple transactions access it simultaneously.
+Why Do We Need Locking?
+Suppose
+Product
+Quantity = 10
+Rahul opens product.
+He sees
+10
+Priya opens same product.
+She also sees
+10
+Rahul buys
+7
+Quantity becomes
+3
+Priya still thinks
+10
+She buys
+6
+Final quantity
+?
+Negative.
+Impossible.
+Locking prevents this.
+Spring Gives Two Strategies
+Locking
+
+↓
+
+Optimistic
+
+or
+
+Pessimistic
+
+When user 1 updates the version  and user 2 tries to update the version and the database version is different at that time 
+Throws
+OptimisticLockException
+
+What is @Version?
+@Version
+private Integer version;
+
+Definition: Optimistic locking assumes that multiple transactions can complete without affecting each other,
+and it only checks for conflicts at the time of committing., it is commonly implemented using a field annotated with @Version.
+How Do We Implement It?
+Add a version field to your entity:
+@Version
+private Long version;
+@Version
+    ↓
+Read Entity + Version
+    ↓
+Modify Entity
+    ↓
+Try to Update
+    ↓
+Version still matches?
+   ↙             ↘
+ YES              NO
+ ↓                 ↓
+UPDATE          CONFLICT
+ ↓
+Version increases
+
+Optimistic Locking = @Version + compare before update.
+
+7. Why Do We Need Optimistic Locking?
+Without it:
+Transaction A reads value
+        ↓
+Transaction B reads same value
+        ↓
+A updates
+        ↓
+B updates using old information
+        ↓
+A's update may be overwritten ❌
+
+With optimistic locking:
+A reads Version 1
+B reads Version 1
+
+        ↓
+
+A updates
+Version → 2
+        ↓
+B tries Version 1
+        ↓
+VERSION MISMATCH
+        ↓
+Conflict detected ✅
+
+
+Pessimistic Locking:
+Definition: Pessimistic locking assumes that conflicts will occur, and it locks the data from the moment a transaction starts until it completes.
+
+Real Life Example
+Imagine
+Public Toilet.
+One person goes inside.
+Locks door.
+Nobody enters.
+After finishing,
+Door opens.
+Exactly
+Pessimistic Lock.
+
+Which One is Faster?
+Optimistic
+Very Fast.
+No waiting.
+
+Pessimistic
+Slower.
+Users wait.
+
+Which One is Safer?
+Pessimistic.
+Because only one user works at a time.
+
+Performance Comparison
+| Feature            | Optimistic         | Pessimistic                         |
+| ------------------ | ------------------ | ----------------------------------- |
+| Locks immediately? | ❌ No               | ✅ Yes                               |
+| Waiting?           | No                 | Yes                                 |
+| Performance        | Fast               | Slower                              |
+| Conflict Handling  | At commit          | Before update                       |
+| Best For           | Read-heavy systems | Write-heavy, conflict-prone systems |
+
+
+Exceptions
+OptimisticLockException
+Meaning
+Someone changed data before you.
+Retry.
+Real Life
+Google Docs says
+"This document changed."
+
+PessimisticLockException
+Meaning
+Couldn't obtain lock.
+Someone else owns it.
+Wait.
+Retry.
+Abort.
+
+Many users editing?
+
+        │
+       Yes
+        │
+Can conflicts happen often?
+        │
+     ┌──┴──┐
+     │     │
+    No    Yes
+     │      │
+Optimistic  Pessimistic
+
+
+9. Main Pessimistic Lock Modes
+For fresher interviews, know these three names:
+PESSIMISTIC_READ
+LockModeType.PESSIMISTIC_READ
+Conceptually:
+Protect the row against conflicting modifications while allowing behavior consistent with a read lock, depending on database support.
+PESSIMISTIC_WRITE ⭐
+LockModeType.PESSIMISTIC_WRITE
+Think:
+"I'm going to modify this data. Acquire a stronger lock."
+This is the most important one for you to remember.
+PESSIMISTIC_FORCE_INCREMENT
+LockModeType.PESSIMISTIC_FORCE_INCREMENT
+This combines pessimistic locking with version handling and forces a version increment for versioned entities.
+
+15. Universal Decision Formula
+Whenever you're working on a future project:
+Can multiple transactions
+modify the same data?
+        ↓
+       YES
+        ↓
+How likely are conflicts?
+   ↙                 ↘
+LOW                  HIGH
+ ↓                    ↓
+Optimistic         Consider
+Locking            Pessimistic
+ ↓                    ↓
+@Version           @Lock
+
+Q7. What is a deadlock?
+Two or more transactions wait on resources held by each other and cannot proceed without intervention.
+
+4. What is @Version?
+Answer
+@Version marks a field used by Hibernate to detect concurrent modifications.
+Hibernate automatically increments the version whenever the entity is successfully updated.
+
+5. Difference between Optimistic and Pessimistic Locking?
+Optimistic	                                 Pessimistic
+Trust first, check later	                   Lock first, work later
+Uses @Version	                               Uses database locks
+High performance for read-heavy System       Safer for high-conflict updates
+Conflict detected at commit	                 Conflict prevented from the beginning
+
+6. Which one would you choose for a banking system?
+Answer
+For critical balance updates where data correctness is essential, 
+Pessimistic Locking is often preferred because it prevents concurrent modifications while the transaction is in progress.
