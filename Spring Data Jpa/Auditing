@@ -1,0 +1,151 @@
+1. What is Auditing?
+Imagine your teacher keeps a notebook for homework:
+Homework: Mathematics
+Created on: 07-Aug-2026
+Created by: Teacher
+Last changed: 08-Aug-2026
+Changed by: Principal
+The actual homework is one thing.
+But the notebook also remembers:
+When was it created? When was it last changed? Who created it? Who changed it?
+That's Auditing.
+In a database, suppose we have:
+Employee
+-------------------------
+id
+name
+email
+salary
+
+createdAt
+updatedAt
+createdBy
+updatedBy
+
+Spring Data JPA Auditing is a feature used to automatically track metadata about an entity,
+such as when it was created, when it was last modified, who created it, and who last modified it.
+Remember four things:
+AUDITING
+   ↓
+WHEN created?
+WHEN modified?
+WHO created?
+WHO modified?
+
+
+Why Do We Need Auditing?
+We need auditing to automatically track important information about changes made to database records.
+For example, if an employee's salary changes from ₹50,000 to ₹70,000, later we may want to know:
+When was the employee record created?
+When was it last updated?
+Who created it?
+Who last modified it?
+Without auditing, we would have to manage this information manually.
+
+This is useful in:
+Banking applications
+E-commerce
+HR systems
+Admin dashboards
+Order systems
+Enterprise applications
+
+4. The Four Main Annotations
+Spring Data gives us:
+@CreatedDate
+@LastModifiedDate
+@CreatedBy
+@LastModifiedBy
+
+Lifetime trick
+TIME
+ ├── @CreatedDate
+ └── @LastModifiedDate
+
+USER
+ ├── @CreatedBy
+ └── @LastModifiedBy
+
+Example:
+@Entity
+@EntityListeners(AuditingEntityListener.class)
+public class Employee {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    private String name;
+
+    private Double salary;
+
+    @CreatedDate
+    private LocalDateTime createdAt;
+
+    @LastModifiedDate
+    private LocalDateTime updatedAt;
+}
+
+What is @EntityListeners?
+@EntityListeners(AuditingEntityListener.class)
+Think of the listener as someone watching the entity:
+Listener = Watch entity events.
+@EntityListeners is a JPA annotation used to tell JPA:
+“Whenever certain lifecycle events happen to this entity, call this listener class.
+
+9. We Must Enable Auditing?
+In a Spring configuration class, auditing must be enabled:
+@Configuration
+@EnableJpaAuditing
+public class JpaConfig {
+
+}
+@EnableJpaAuditing
+       ↓
+Turn auditing ON
+🧠 Lifetime Formula
+Need to know record history metadata?
+              ↓
+          AUDITING
+              ↓
+      ┌───────┴────────┐
+     TIME             USER
+      ↓                 ↓
+@CreatedDate        @CreatedBy
+@LastModifiedDate   @LastModifiedBy
+      ↓                 ↓
+AuditingEntityListener  AuditorAware
+              ↓
+       @EnableJpaAuditing
+
+Shortest trick:
+Auditing = WHO + WHEN
+
+🎤 Interview Questions
+
+What is Spring Data JPA Auditing?
+It automatically tracks entity metadata such as creation time, modification time, creator, and last modifier.
+
+What does @CreatedDate do?
+Automatically stores the entity's creation timestamp.
+
+What does @LastModifiedDate do?
+Tracks when the entity was last modified.
+
+What does @EnableJpaAuditing do?
+Enables Spring Data JPA auditing support.
+
+What is AuditorAware?
+It provides information about the current auditor, commonly the authenticated user, for fields such as @CreatedBy and @LastModifiedBy.
+
+Why use a BaseEntity?
+To centralize common audit fields and avoid duplicating them across multiple entities.
+
+Fresher Priority
+For now, make sure you can implement:
+@EnableJpaAuditing
+@EntityListeners(AuditingEntityListener.class)
+@CreatedDate
+private LocalDateTime createdAt;
+@LastModifiedDate
+private LocalDateTime updatedAt;
